@@ -66,10 +66,6 @@ def init_db():
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
     
-    # Удаляем старые таблицы
-    c.execute('DROP TABLE IF EXISTS notes')
-    c.execute('DROP TABLE IF EXISTS users')
-    
     # Таблица пользователей
     c.execute('''
         CREATE TABLE IF NOT EXISTS users
@@ -81,7 +77,7 @@ def init_db():
          google_id TEXT UNIQUE)
     ''')
     
-    # Обновленная таблица заметок
+    # Таблица заметок
     c.execute('''
         CREATE TABLE IF NOT EXISTS notes
         (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -224,21 +220,30 @@ def get_notes():
 @app.route('/api/notes', methods=['POST'])
 @login_required
 def create_note():
-    data = request.json
-    conn = sqlite3.connect('notes.db')
-    c = conn.cursor()
-    
-    now = datetime.datetime.now().isoformat()
-    c.execute('''
-        INSERT INTO notes (title, content, user_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (data['title'], data['content'], session['user_id'], now, now))
-    
-    note_id = c.lastrowid
-    conn.commit()
-    conn.close()
-    
-    return jsonify({'id': note_id, 'message': 'Note created successfully'})
+    try:
+        data = request.json
+        print(f"Creating note with data: {data}")
+        print(f"Current user_id in session: {session.get('user_id')}")
+        
+        conn = sqlite3.connect('notes.db')
+        c = conn.cursor()
+        
+        now = datetime.datetime.now().isoformat()
+        c.execute('''
+            INSERT INTO notes (title, content, user_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (data['title'], data['content'], session['user_id'], now, now))
+        
+        note_id = c.lastrowid
+        print(f"Created note with ID: {note_id}")
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'id': note_id, 'message': 'Note created successfully'})
+    except Exception as e:
+        print(f"Error creating note: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/notes/<int:note_id>', methods=['PUT'])
 @login_required
