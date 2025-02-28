@@ -1,0 +1,43 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Обновляем код
+            cd /path/to/app
+            git pull origin main
+            
+            # Обновляем бэкенд
+            source env/bin/activate
+            pip install -r requirements.txt
+            sudo systemctl restart notes-app
+            
+            # Обновляем фронтенд
+            cd frontend
+            rm -rf /var/www/html/*
+            cp -r build/* /var/www/html/ 
