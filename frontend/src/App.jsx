@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import Auth from './components/Auth'
 
 const API_URL = '/api'
 
@@ -16,6 +17,7 @@ function App() {
   const [saveError, setSaveError] = useState(false)
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
+  const [user, setUser] = useState(null)
 
   // Минимальное расстояние для свайпа (в пикселях)
   const minSwipeDistance = 50
@@ -173,6 +175,23 @@ function App() {
     setSearchQuery('')
   }
 
+  const handleLogin = (userData) => {
+    setUser(userData)
+    fetchNotes()
+  }
+
+  // Форматирование даты
+  const formatDate = (dateString) => {
+    const options = { 
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }
+    return new Date(dateString).toLocaleString('ru-RU', options)
+  }
+
   return (
     <div 
       className="app-container"
@@ -180,12 +199,24 @@ function App() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      <Auth onLogin={handleLogin} />
+      
       {saveError && (
         <div className="save-error">
           Ошибка сохранения. Проверьте подключение к серверу.
         </div>
       )}
+      
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="user-info">
+          {user && (
+            <div className="user-details">
+              <span className="username">{user.username}</span>
+              <span className="email">{user.email}</span>
+            </div>
+          )}
+        </div>
+        
         <div className="search-container">
           <div className="search-bar">
             <div className="search-input-wrapper">
@@ -217,6 +248,7 @@ function App() {
             </label>
           </div>
         </div>
+        
         <div className="notes-list">
           {connectionError ? (
             <div className="connection-error">
@@ -242,6 +274,11 @@ function App() {
                   >
                     <div className="note-item-content">
                       <h3>{note.title || 'Без заголовка'}</h3>
+                      <div className="note-meta">
+                        <span className="note-date">
+                          Изменено: {formatDate(note.updated_at)}
+                        </span>
+                      </div>
                     </div>
                     <button
                       className="delete-button"
@@ -257,7 +294,14 @@ function App() {
           )}
         </div>
       </aside>
+      
       <main className="main-content">
+        {selectedNote && (
+          <div className="note-meta-header">
+            <span>Создано: {formatDate(selectedNote.created_at)}</span>
+            <span>Автор: {selectedNote.author}</span>
+          </div>
+        )}
         <form className="note-form" onSubmit={(e) => e.preventDefault()}>
           <input
             type="text"

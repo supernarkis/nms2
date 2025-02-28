@@ -1,10 +1,20 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, session
 from flask_cors import CORS
 import sqlite3
 import datetime
+from functools import wraps
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
+app.secret_key = os.urandom(24)  # для сессий
+
+# Конфигурация Google OAuth
+GOOGLE_CLIENT_ID = "ВАШ_GOOGLE_CLIENT_ID"
+GOOGLE_CLIENT_SECRET = "ВАШ_GOOGLE_CLIENT_SECRET"
+REDIRECT_URI = "http://89.110.64.223/api/auth/callback"
 
 def levenshtein_distance(s1, s2):
     if len(s1) < len(s2):
@@ -51,61 +61,192 @@ def fuzzy_search(text, query, threshold=3):
 def init_db():
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
+    
+    # Таблица пользователей
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users
+        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+         email TEXT UNIQUE NOT NULL,
+         username TEXT NOT NULL,
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+         last_login TIMESTAMP,
+         google_id TEXT UNIQUE)
+    ''')
+    
+    # Обновленная таблица заметок
     c.execute('''
         CREATE TABLE IF NOT EXISTS notes
         (id INTEGER PRIMARY KEY AUTOINCREMENT,
          title TEXT NOT NULL,
          content TEXT NOT NULL,
-         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+         user_id INTEGER,
+         FOREIGN KEY (user_id) REFERENCES users(id))
     ''')
+    
     conn.commit()
     conn.close()
 
 init_db()
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/api/auth/login', methods=['GET'])
+def login():
+    # Редирект на страницу авторизации Google
+    return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={GOOGLE_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=email profile")
+
+@app.route('/api/auth/callback')
+def callback():
+    code = request.args.get('code')
+    # Здесь получаем токен от Google и информацию о пользователе
+    # Для простоты примера опустим детали реализации
+    
+    # После успешной аутентификации:
+    user_info = get_google_user_info(code)  # Функция получения информации о пользователе
+    
+    conn = sqlite3.connect('notes.db')
+    c = conn.cursor()
+    
+    # Проверяем существование пользователя или создаем нового
+    c.execute('SELECT id FROM users WHERE email = ?', (user_info['email'],))
+    user = c.fetchone()
+    
+    if user is None:
+        username = user_info['email'].split('@')[0]
+        c.execute('''
+            INSERT INTO users (email, username, google_id, last_login)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (user_info['email'], username, user_info['sub']))
+        user_id = c.lastrowid
+    else:
+        user_id = user[0]
+        c.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    session['user_id'] = user_id
+    return redirect('/')
+
+@app.route('/api/auth/logout')
+def logout():
+    session.clear()
+    return jsonify({'message': 'Logged out'})
+
+@app.route('/api/auth/user')
+@login_required
+def get_user():
+    conn = sqlite3.connect('notes.db')
+    c = conn.cursor()
+    c.execute('SELECT id, email, username, created_at FROM users WHERE id = ?', (session['user_id'],))
+    user = c.fetchone()
+    conn.close()
+    
+    return jsonify({
+        'id': user[0],
+        'email': user[1],
+        'username': user[2],
+        'created_at': user[3]
+    })
+
 @app.route('/api/notes', methods=['GET'])
+@login_required
 def get_notes():
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
-    c.execute('SELECT * FROM notes ORDER BY created_at DESC')
-    notes = [{'id': row[0], 'title': row[1], 'content': row[2], 'created_at': row[3]} 
-             for row in c.fetchall()]
+    c.execute('''
+        SELECT n.*, u.username 
+        FROM notes n 
+        JOIN users u ON n.user_id = u.id 
+        WHERE user_id = ? 
+        ORDER BY n.updated_at DESC
+    ''', (session['user_id'],))
+    
+    notes = [{
+        'id': row[0],
+        'title': row[1],
+        'content': row[2],
+        'created_at': row[3],
+        'updated_at': row[4],
+        'author': row[6]
+    } for row in c.fetchall()]
+    
     conn.close()
     return jsonify(notes)
 
 @app.route('/api/notes', methods=['POST'])
+@login_required
 def create_note():
     data = request.json
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
-    c.execute('INSERT INTO notes (title, content) VALUES (?, ?)',
-              (data['title'], data['content']))
-    conn.commit()
+    
+    now = datetime.datetime.now().isoformat()
+    c.execute('''
+        INSERT INTO notes (title, content, user_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (data['title'], data['content'], session['user_id'], now, now))
+    
     note_id = c.lastrowid
+    conn.commit()
     conn.close()
+    
     return jsonify({'id': note_id, 'message': 'Note created successfully'})
 
 @app.route('/api/notes/<int:note_id>', methods=['PUT'])
+@login_required
 def update_note(note_id):
     data = request.json
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
-    c.execute('UPDATE notes SET title = ?, content = ? WHERE id = ?',
-              (data['title'], data['content'], note_id))
+    
+    # Проверяем, принадлежит ли заметка пользователю
+    c.execute('SELECT user_id FROM notes WHERE id = ?', (note_id,))
+    note = c.fetchone()
+    
+    if not note or note[0] != session['user_id']:
+        conn.close()
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    c.execute('''
+        UPDATE notes 
+        SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ? AND user_id = ?
+    ''', (data['title'], data['content'], note_id, session['user_id']))
+    
     conn.commit()
     conn.close()
     return jsonify({'message': 'Note updated successfully'})
 
 @app.route('/api/notes/<int:note_id>', methods=['DELETE'])
+@login_required
 def delete_note(note_id):
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
-    c.execute('DELETE FROM notes WHERE id = ?', (note_id,))
+    
+    # Проверяем, принадлежит ли заметка пользователю
+    c.execute('SELECT user_id FROM notes WHERE id = ?', (note_id,))
+    note = c.fetchone()
+    
+    if not note or note[0] != session['user_id']:
+        conn.close()
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    c.execute('DELETE FROM notes WHERE id = ? AND user_id = ?', (note_id, session['user_id']))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Note deleted successfully'})
 
 @app.route('/api/notes/search', methods=['GET'])
+@login_required
 def search_notes():
     query = request.args.get('q', '')
     strict_search = request.args.get('strict', 'false').lower() == 'true'
@@ -115,21 +256,39 @@ def search_notes():
     
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
-    c.execute('SELECT * FROM notes ORDER BY created_at DESC')
+    c.execute('''
+        SELECT n.*, u.username 
+        FROM notes n 
+        JOIN users u ON n.user_id = u.id 
+        WHERE n.user_id = ? 
+        ORDER BY n.updated_at DESC
+    ''', (session['user_id'],))
     all_notes = c.fetchall()
     conn.close()
 
     if strict_search:
-        # Регистронезависимый поиск по точному совпадению
         notes = [
-            {'id': row[0], 'title': row[1], 'content': row[2], 'created_at': row[3]}
+            {
+                'id': row[0],
+                'title': row[1],
+                'content': row[2],
+                'created_at': row[3],
+                'updated_at': row[4],
+                'author': row[6]
+            }
             for row in all_notes
             if query.lower() in row[1].lower() or query.lower() in row[2].lower()
         ]
     else:
-        # Нечеткий поиск с использованием расстояния Левенштейна
         notes = [
-            {'id': row[0], 'title': row[1], 'content': row[2], 'created_at': row[3]}
+            {
+                'id': row[0],
+                'title': row[1],
+                'content': row[2],
+                'created_at': row[3],
+                'updated_at': row[4],
+                'author': row[6]
+            }
             for row in all_notes
             if fuzzy_search(row[1], query) or fuzzy_search(row[2], query)
         ]
