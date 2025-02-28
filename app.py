@@ -66,6 +66,10 @@ def init_db():
     conn = sqlite3.connect('notes.db')
     c = conn.cursor()
     
+    # Удаляем старые таблицы
+    c.execute('DROP TABLE IF EXISTS notes')
+    c.execute('DROP TABLE IF EXISTS users')
+    
     # Таблица пользователей
     c.execute('''
         CREATE TABLE IF NOT EXISTS users
