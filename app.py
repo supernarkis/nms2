@@ -14,7 +14,7 @@ app.secret_key = os.urandom(24)  # для сессий
 # Конфигурация Google OAuth
 GOOGLE_CLIENT_ID = "ВАШ_GOOGLE_CLIENT_ID"
 GOOGLE_CLIENT_SECRET = "ВАШ_GOOGLE_CLIENT_SECRET"
-REDIRECT_URI = "http://89.110.64.223/api/auth/callback"
+REDIRECT_URI = "https://notes.narkis.ru/api/auth/callback"
 
 def levenshtein_distance(s1, s2):
     if len(s1) < len(s2):
