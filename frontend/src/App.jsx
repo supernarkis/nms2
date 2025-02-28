@@ -212,7 +212,6 @@ function App() {
           {user && (
             <div className="user-details">
               <span className="username">{user.username}</span>
-              <span className="email">{user.email}</span>
             </div>
           )}
         </div>
@@ -273,7 +272,7 @@ function App() {
                     onClick={() => selectNote(note)}
                   >
                     <div className="note-item-content">
-                      <h3>{note.title || 'Без заголовка'}</h3>
+                      <h3>{note.title || 'noname'}</h3>
                       <div className="note-meta">
                         <span className="note-date">
                           Изменено: {formatDate(note.updated_at)}
@@ -296,12 +295,7 @@ function App() {
       </aside>
       
       <main className="main-content">
-        {selectedNote && (
-          <div className="note-meta-header">
-            <span>Создано: {formatDate(selectedNote.created_at)}</span>
-            <span>Автор: {selectedNote.author}</span>
-          </div>
-        )}
+
         <form className="note-form" onSubmit={(e) => e.preventDefault()}>
           <input
             type="text"
