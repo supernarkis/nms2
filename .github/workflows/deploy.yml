@@ -28,6 +28,20 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
+            # Устанавливаем nvm и Node.js если их нет
+            if [ ! -d "$HOME/.nvm" ]; then
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+              nvm install 18
+            fi
+            
+            # Активируем Node.js 18
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 18
+            
             # Обновляем код
             cd /nms2/nms2
             git pull origin main
@@ -37,7 +51,9 @@ jobs:
             pip install -r requirements.txt
             sudo systemctl restart notes-app
             
-            # Обновляем фронтенд
+            # Собираем и обновляем фронтенд
             cd frontend
-            rm -rf /var/www/html/*
-            cp -r build/* /var/www/html/ 
+            npm install
+            npm run build
+            sudo rm -rf /var/www/html/*
+            sudo cp -r dist/* /var/www/html/ 
