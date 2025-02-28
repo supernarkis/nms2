@@ -40,7 +40,7 @@ const Auth = () => {
         <span className="username">{user.username}</span>
         <span className="email">{user.email}</span>
       </div>
-      <button onClick={handleLogout} className="logout-button" title="Выйти">⇥</button>
+      <button onClick={handleLogout} className="logout-button" title="Выйти">×</button>
     </div>
   );
 };
