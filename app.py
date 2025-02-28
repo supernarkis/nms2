@@ -13,8 +13,11 @@ CORS(app, supports_credentials=True)
 app.secret_key = os.urandom(24)  # для сессий
 
 # Конфигурация Google OAuth
-GOOGLE_CLIENT_ID = "ВАШ_GOOGLE_CLIENT_ID"
-GOOGLE_CLIENT_SECRET = "ВАШ_GOOGLE_CLIENT_SECRET"
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+    raise ValueError("GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET должны быть установлены в переменных окружения")
+
 REDIRECT_URI = "https://notes.narkis.ru/api/auth/callback"
 
 def levenshtein_distance(s1, s2):
