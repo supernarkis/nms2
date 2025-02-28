@@ -6,6 +6,7 @@ from functools import wraps
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
+import requests as requests_lib
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -103,38 +104,69 @@ def login():
     # Редирект на страницу авторизации Google
     return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={GOOGLE_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=email profile")
 
+def get_google_user_info(code):
+    # Получаем токен доступа от Google
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        'code': code,
+        'client_id': GOOGLE_CLIENT_ID,
+        'client_secret': GOOGLE_CLIENT_SECRET,
+        'redirect_uri': REDIRECT_URI,
+        'grant_type': 'authorization_code'
+    }
+    
+    response = requests_lib.post(token_url, data=data)
+    if not response.ok:
+        raise Exception('Failed to get token from Google')
+    
+    token_data = response.json()
+    
+    # Получаем информацию о пользователе
+    userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+    headers = {'Authorization': f'Bearer {token_data["access_token"]}'}
+    response = requests_lib.get(userinfo_url, headers=headers)
+    
+    if not response.ok:
+        raise Exception('Failed to get user info from Google')
+    
+    return response.json()
+
 @app.route('/api/auth/callback')
 def callback():
-    code = request.args.get('code')
-    # Здесь получаем токен от Google и информацию о пользователе
-    # Для простоты примера опустим детали реализации
-    
-    # После успешной аутентификации:
-    user_info = get_google_user_info(code)  # Функция получения информации о пользователе
-    
-    conn = sqlite3.connect('notes.db')
-    c = conn.cursor()
-    
-    # Проверяем существование пользователя или создаем нового
-    c.execute('SELECT id FROM users WHERE email = ?', (user_info['email'],))
-    user = c.fetchone()
-    
-    if user is None:
-        username = user_info['email'].split('@')[0]
-        c.execute('''
-            INSERT INTO users (email, username, google_id, last_login)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (user_info['email'], username, user_info['sub']))
-        user_id = c.lastrowid
-    else:
-        user_id = user[0]
-        c.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user_id,))
-    
-    conn.commit()
-    conn.close()
-    
-    session['user_id'] = user_id
-    return redirect('/')
+    try:
+        code = request.args.get('code')
+        if not code:
+            return jsonify({'error': 'No authorization code provided'}), 400
+            
+        # Получаем информацию о пользователе
+        user_info = get_google_user_info(code)
+        
+        conn = sqlite3.connect('notes.db')
+        c = conn.cursor()
+        
+        # Проверяем существование пользователя или создаем нового
+        c.execute('SELECT id FROM users WHERE email = ?', (user_info['email'],))
+        user = c.fetchone()
+        
+        if user is None:
+            username = user_info['email'].split('@')[0]
+            c.execute('''
+                INSERT INTO users (email, username, google_id, last_login)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (user_info['email'], username, user_info['sub']))
+            user_id = c.lastrowid
+        else:
+            user_id = user[0]
+            c.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        session['user_id'] = user_id
+        return redirect('/')
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/logout')
 def logout():
