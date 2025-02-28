@@ -1,1 +1,14 @@
- 
+[Unit]
+Description=Notes App Backend
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/nms2/nms2
+Environment="PATH=/nms2/nms2/env/bin"
+ExecStart=/nms2/nms2/env/bin/python app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target 
