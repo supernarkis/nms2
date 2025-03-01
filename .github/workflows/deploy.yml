@@ -76,21 +76,36 @@ jobs:
             
             # Настраиваем systemd с переменными окружения
             echo "Configuring systemd service..."
+            
+            # Создаем директорию для override файла
             sudo mkdir -p /etc/systemd/system/notes-app.service.d
-            sudo tee /etc/systemd/system/notes-app.service.d/override.conf > /dev/null << 'EOF'
             
-            # Экспортируем переменные для использования в heredoc
-            export GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}'
-            export GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}'
+            # Создаем временный файл с переменными окружения
+            cat << EOF > /tmp/override.conf
+[Service]
+Environment="GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
+Environment="GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+EOF
             
-            # Применяем конфигурацию с переменными
-            envsubst < /etc/systemd/system/notes-app.service.d/override.conf | sudo tee /etc/systemd/system/notes-app.service.d/override.conf > /dev/null
+            # Копируем файл в нужное место с правами root
+            sudo cp /tmp/override.conf /etc/systemd/system/notes-app.service.d/override.conf
+            sudo rm /tmp/override.conf
             
             # Обновляем и перезапускаем сервис
             echo "Restarting service..."
             sudo cp notes-app.service /etc/systemd/system/
             sudo systemctl daemon-reload
             sudo systemctl restart notes-app
+            
+            # Проверяем статус сервиса и логи при ошибке
+            if ! sudo systemctl is-active --quiet notes-app; then
+              echo "Error: Service failed to start. Checking logs..."
+              echo "=== Service Status ==="
+              sudo systemctl status notes-app
+              echo "=== Last 50 lines of journal ==="
+              sudo journalctl -u notes-app -n 50
+              exit 1
+            fi
             
             # Собираем и обновляем фронтенд
             echo "Building frontend..."
@@ -130,26 +145,30 @@ jobs:
                 attempt=$((attempt + 1))
               done
               
+              # При ошибке выводим дополнительную диагностику
               echo "Error: $url is not available after $max_attempts attempts"
+              echo "Curl verbose output:"
+              curl -v -k "$url"
               return 1
             }
             
             # Проверяем бэкенд (API endpoint)
             if ! check_endpoint "https://notes.narkis.ru/api/auth/check" 6; then
               echo "Backend health check failed!"
+              echo "=== Service Status ==="
+              sudo systemctl status notes-app
+              echo "=== Last 50 lines of journal ==="
+              sudo journalctl -u notes-app -n 50
               exit 1
             fi
             
             # Проверяем фронтенд (главная страница)
             if ! check_endpoint "https://notes.narkis.ru/" 6; then
               echo "Frontend health check failed!"
-              exit 1
-            fi
-            
-            # Проверяем статус сервиса systemd
-            if ! sudo systemctl is-active --quiet notes-app; then
-              echo "Error: notes-app service is not running!"
-              sudo systemctl status notes-app
+              echo "=== Nginx Status ==="
+              sudo systemctl status nginx
+              echo "=== Nginx Error Log ==="
+              sudo tail -n 50 /var/log/nginx/error.log
               exit 1
             fi
             
