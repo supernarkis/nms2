@@ -191,41 +191,73 @@ function App() {
           {user && (
             <>
               <span className="username">{user.username}</span>
-              <button onClick={handleLogout} className="logout-button">Выйти</button>
+              <button onClick={handleLogout} className="logout-button" title="{Х}">×</button>
             </>
           )}
         </div>
         
         <div className="search-container">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Поиск..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              placeholder="Поиск..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                className="clear-search" 
+                onClick={clearSearch}
+                title="Очистить поиск"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <div className="search-options">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={strictSearch}
+                  onChange={(e) => setStrictSearch(e.target.checked)}
+                />
+                Строгий поиск
+              </label>
+            </div>
+          )}
         </div>
         
         <div className="notes-list">
           <div className="note-item" onClick={startNewNote}>
-            <div className="note-title">+ Новая заметка</div>
+            <div className="note-item-content">
+              <h3>+New</h3>
+            </div>
           </div>
           
           {notes.map(note => (
             <div
               key={note.id}
-              className={`note-item ${selectedNote?.id === note.id ? 'selected' : ''}`}
+              className={`note-item ${selectedNote?.id === note.id ? 'active' : ''}`}
               onClick={() => selectNote(note)}
             >
-              <div className="note-title">{note.title || 'Без названия'}</div>
-              <div className="note-preview">{note.content}</div>
+              <div className="note-item-content">
+                <h3>{note.title || 'Без названия'}</h3>
+              </div>
+              <button
+                className="delete-button"
+                onClick={(e) => deleteNote(note.id, e)}
+                title="Удалить"
+              >
+                ×
+              </button>
             </div>
           ))}
         </div>
       </aside>
       
       <main className="main-content">
-        <div className="editor">
+        <form className="note-form" onSubmit={(e) => e.preventDefault()}>
           <input
             type="text"
             value={title}
@@ -237,7 +269,7 @@ function App() {
             onChange={(e) => setContent(e.target.value)}
             placeholder="Начните писать..."
           />
-        </div>
+        </form>
       </main>
     </div>
   )
