@@ -77,9 +77,18 @@ jobs:
             # Настраиваем systemd с переменными окружения
             echo "Configuring systemd service..."
             sudo mkdir -p /etc/systemd/system/notes-app.service.d
-            echo "[Service]
-Environment=\"GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}\"
-Environment=\"GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}\"" | sudo tee /etc/systemd/system/notes-app.service.d/override.conf
+            sudo tee /etc/systemd/system/notes-app.service.d/override.conf > /dev/null << 'EOF'
+[Service]
+Environment="GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
+Environment="GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
+EOF
+            
+            # Экспортируем переменные для использования в heredoc
+            export GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}'
+            export GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}'
+            
+            # Применяем конфигурацию с переменными
+            envsubst < /etc/systemd/system/notes-app.service.d/override.conf | sudo tee /etc/systemd/system/notes-app.service.d/override.conf > /dev/null
             
             # Обновляем и перезапускаем сервис
             echo "Restarting service..."
