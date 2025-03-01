@@ -22,6 +22,7 @@ if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
     raise ValueError("GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET должны быть установлены в переменных окружения")
 
 REDIRECT_URI = "https://notes.narkis.ru/api/auth/callback"
+BASE_URL = "https://notes.narkis.ru"
 
 def levenshtein_distance(s1, s2):
     if len(s1) < len(s2):
