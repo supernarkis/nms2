@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
-const Auth = () => {
-  const [user, setUser] = useState(null);
-
+const Auth = ({ onLogin }) => {
   useEffect(() => {
     checkAuth();
   }, []);
@@ -14,32 +12,14 @@ const Auth = () => {
       });
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData);
+        onLogin(userData);
       }
     } catch (error) {
       console.error('Error checking auth:', error);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        credentials: 'include'
-      });
-      window.location.reload();
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  };
-
-  if (!user) return null;
-
-  return (
-    <div className="auth-header">
-      <span className="username">{user.username}</span>
-      <button onClick={handleLogout} className="logout-button" title="Выйти">×</button>
-    </div>
-  );
+  return null;
 };
 
 export default Auth; 

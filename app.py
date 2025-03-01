@@ -8,6 +8,9 @@ from google.auth.transport import requests
 import os
 import requests as requests_lib
 
+# Режим разработки
+DEBUG_MODE = os.environ.get('DEBUG_MODE', 'false').lower() == 'true'
+
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 app.secret_key = os.urandom(24)  # для сессий
@@ -97,10 +100,33 @@ init_db()
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if DEBUG_MODE:
+            # В режиме разработки используем тестового пользователя
+            if 'user_id' not in session:
+                session['user_id'] = 1
+            return f(*args, **kwargs)
+            
         if 'user_id' not in session:
-            return jsonify({'error': 'Unauthorized'}), 401
+            return jsonify({'error': 'Unauthorized', 'redirect': True}), 401
         return f(*args, **kwargs)
     return decorated_function
+
+@app.route('/api/auth/check')
+def check_auth():
+    if DEBUG_MODE:
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'id': 1,
+                'username': 'debug_user',
+                'email': 'debug@example.com'
+            }
+        })
+    
+    if 'user_id' not in session:
+        return jsonify({'authenticated': False})
+        
+    return jsonify({'authenticated': True})
 
 @app.route('/api/auth/login', methods=['GET'])
 def login():

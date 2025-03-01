@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Auth from './components/Auth'
+import WelcomePage from './components/WelcomePage'
 
 const API_URL = '/api'
 
@@ -14,10 +15,11 @@ function App() {
   const [saveTimeout, setSaveTimeout] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
-  const [saveError, setSaveError] = useState(false)
+  const [saveError, setSaveError] = useState(null)
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
   const [user, setUser] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(null)
 
   // Минимальное расстояние для свайпа (в пикселях)
   const minSwipeDistance = 50
@@ -45,6 +47,26 @@ function App() {
     // Если свайп слева направо - открываем сайдбар
     else if (isRightSwipe && !isSidebarOpen) {
       setIsSidebarOpen(true)
+    }
+  }
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/check', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      setIsAuthenticated(data.authenticated)
+      if (data.authenticated) {
+        fetchNotes()
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error)
+      setIsAuthenticated(false)
     }
   }
 
@@ -83,10 +105,10 @@ function App() {
           } else {
             fetchNotes()
           }
-          setSaveError(false)
+          setSaveError(null)
         } catch (error) {
           console.error('Ошибка при сохранении заметки:', error)
-          setSaveError(true)
+          setSaveError('Ошибка сохранения. Проверьте подключение к серверу.')
         }
       }, 1000)
 
@@ -180,6 +202,17 @@ function App() {
     fetchNotes()
   }
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        credentials: 'include'
+      });
+      window.location.reload();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
   // Форматирование даты
   const formatDate = (dateString) => {
     const options = { 
@@ -192,6 +225,14 @@ function App() {
     return new Date(dateString).toLocaleString('ru-RU', options)
   }
 
+  if (isAuthenticated === null) {
+    return null // Loading state
+  }
+
+  if (!isAuthenticated) {
+    return <WelcomePage />
+  }
+
   return (
     <div 
       className="app-container"
@@ -199,20 +240,29 @@ function App() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      <button 
+        className="menu-button" 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        title="Открыть меню"
+      >
+        ☰
+      </button>
+      
       <Auth onLogin={handleLogin} />
       
       {saveError && (
         <div className="save-error">
-          Ошибка сохранения. Проверьте подключение к серверу.
+          {saveError}
         </div>
       )}
       
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="user-info">
+        <div className="sidebar-header">
           {user && (
-            <div className="user-details">
+            <>
               <span className="username">{user.username}</span>
-            </div>
+              <button onClick={handleLogout} className="logout-button" title="Выйти">×</button>
+            </>
           )}
         </div>
         
