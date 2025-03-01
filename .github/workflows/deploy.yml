@@ -76,20 +76,12 @@ jobs:
             
             # Настраиваем systemd с переменными окружения
             echo "Configuring systemd service..."
-            
-            # Создаем директорию для override файла
             sudo mkdir -p /etc/systemd/system/notes-app.service.d
             
-            # Создаем временный файл с переменными окружения
-            cat << EOF > /tmp/override.conf
-[Service]
-Environment="GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
-Environment="GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
-EOF
-            
-            # Копируем файл в нужное место с правами root
-            sudo cp /tmp/override.conf /etc/systemd/system/notes-app.service.d/override.conf
-            sudo rm /tmp/override.conf
+            # Создаем override файл с переменными окружения
+            echo '[Service]' | sudo tee /etc/systemd/system/notes-app.service.d/override.conf > /dev/null
+            echo 'Environment="GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"' | sudo tee -a /etc/systemd/system/notes-app.service.d/override.conf > /dev/null
+            echo 'Environment="GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"' | sudo tee -a /etc/systemd/system/notes-app.service.d/override.conf > /dev/null
             
             # Обновляем и перезапускаем сервис
             echo "Restarting service..."
