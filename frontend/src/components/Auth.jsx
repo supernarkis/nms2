@@ -35,11 +35,8 @@ const Auth = () => {
   if (!user) return null;
 
   return (
-    <div className="user-info">
-      <div className="user-details">
-        <span className="username">{user.username}</span>
-        <span className="email">{user.email}</span>
-      </div>
+    <div className="auth-header">
+      <span className="username">{user.username}</span>
       <button onClick={handleLogout} className="logout-button" title="Выйти">×</button>
     </div>
   );
