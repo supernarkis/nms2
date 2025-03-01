@@ -127,15 +127,15 @@ body {
 }
 
 .note-item.active {
-  background: #f0f7ff;
+  background: #dbdbdb;
 }
 
 .note-item:hover {
-  background: #f5f5f5;
+  background: #dbdbdb;
 }
 
 .note-item.active:hover {
-  background: #e5f1ff;
+  background: #dbdbdb;
 }
 
 .note-item-content {
