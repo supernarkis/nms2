@@ -78,10 +78,6 @@ jobs:
             echo "Configuring systemd service..."
             sudo mkdir -p /etc/systemd/system/notes-app.service.d
             sudo tee /etc/systemd/system/notes-app.service.d/override.conf > /dev/null << 'EOF'
-[Service]
-Environment="GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
-Environment="GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
-EOF
             
             # Экспортируем переменные для использования в heredoc
             export GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}'
