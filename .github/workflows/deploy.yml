@@ -73,8 +73,9 @@ jobs:
             # Пересоздаем виртуальное окружение
             echo "Setting up virtual environment..."
             cd "$PROJECT_DIR"
-            rm -rf env
-            python3 -m venv env
+            sudo rm -rf env
+            sudo python3 -m venv env
+            sudo chown -R root:root env
             source env/bin/activate
             
             # Проверяем что Python установлен в виртуальном окружении

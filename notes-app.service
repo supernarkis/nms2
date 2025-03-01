@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=root
 Environment="HOME=/home/root"
-WorkingDirectory=/home/root/nms2/nms2
+WorkingDirectory=/home/root/nms2
 Environment="PATH=/home/root/nms2/env/bin"
 ExecStart=/home/root/nms2/env/bin/python /home/root/nms2/nms2/app.py
 Restart=always
