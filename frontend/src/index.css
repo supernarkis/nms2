@@ -124,23 +124,47 @@ body {
 
 .editor {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 20px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 16px;
-  line-height: 1.6;
+}
+
+.editor input {
+  border: none;
+  outline: none;
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  padding: 0;
+  color: var(--text-color);
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .editor textarea {
-  width: 100%;
-  height: 100%;
+  flex: 1;
   border: none;
   outline: none;
   resize: none;
-  font-family: Georgia, 'Times New Roman', serif;
   font-size: 16px;
   line-height: 1.6;
   padding: 0;
+  color: var(--text-color);
   background: transparent;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+/* Save error styles */
+.save-error {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 16px;
+  background: #ff3b30;
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  z-index: 1000;
 }
 
 /* Welcome page styles */
@@ -212,6 +236,11 @@ body {
 
   .editor {
     padding: 15px;
+  }
+
+  .editor input {
+    font-size: 20px;
+    margin-bottom: 12px;
   }
 }
 

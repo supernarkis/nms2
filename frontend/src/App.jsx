@@ -191,102 +191,53 @@ function App() {
           {user && (
             <>
               <span className="username">{user.username}</span>
-              <button onClick={handleLogout} className="logout-button" title="Выйти">×</button>
+              <button onClick={handleLogout} className="logout-button">Выйти</button>
             </>
           )}
         </div>
         
         <div className="search-container">
-          <div className="search-bar">
-            <div className="search-input-wrapper">
-              <input
-                type="text"
-                placeholder="Поиск..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-              />
-              {searchQuery && (
-                <button 
-                  className="clear-search" 
-                  onClick={clearSearch}
-                  title="Очистить поиск"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-          {(searchQuery || isSearchFocused) && (
-            <div className="search-options">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={strictSearch}
-                  onChange={(e) => setStrictSearch(e.target.checked)}
-                />
-                Строгий поиск
-              </label>
-            </div>
-          )}
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Поиск..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
         
         <div className="notes-list">
-          {connectionError ? (
-            <div className="connection-error">
-              Нет подключения к серверу. Проверьте, что сервер запущен и доступен.
+          <div className="note-item" onClick={startNewNote}>
+            <div className="note-title">+ Новая заметка</div>
+          </div>
+          
+          {notes.map(note => (
+            <div
+              key={note.id}
+              className={`note-item ${selectedNote?.id === note.id ? 'selected' : ''}`}
+              onClick={() => selectNote(note)}
+            >
+              <div className="note-title">{note.title || 'Без названия'}</div>
+              <div className="note-preview">{note.content}</div>
             </div>
-          ) : (
-            <>
-              <div className="note-item new-note-item" onClick={startNewNote}>
-                <div className="note-item-content">
-                  <h3>+ Новая заметка</h3>
-                </div>
-              </div>
-              {notes.length === 0 ? (
-                <div className="no-notes">
-                  {searchQuery ? 'Заметки не найдены' : 'Нет заметок'}
-                </div>
-              ) : (
-                notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className={`note-item ${selectedNote?.id === note.id ? 'active' : ''}`}
-                    onClick={() => selectNote(note)}
-                  >
-                    <div className="note-item-content">
-                      <h3>{note.title || 'noname'}</h3>
-                    </div>
-                    <button
-                      className="delete-button"
-                      onClick={(e) => deleteNote(note.id, e)}
-                      title="Удалить"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                ))
-              )}
-            </>
-          )}
+          ))}
         </div>
       </aside>
       
       <main className="main-content">
-        <form className="note-form" onSubmit={(e) => e.preventDefault()}>
+        <div className="editor">
           <input
             type="text"
-            placeholder="Заголовок"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="Заголовок"
           />
           <textarea
-            placeholder="Начните писать..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            placeholder="Начните писать..."
           />
-        </form>
+        </div>
       </main>
     </div>
   )
