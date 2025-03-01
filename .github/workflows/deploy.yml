@@ -74,14 +74,18 @@ jobs:
             source env/bin/activate
             pip install -r requirements.txt
             
-            # Перезапускаем сервис
+            # Настраиваем systemd с переменными окружения
+            echo "Configuring systemd service..."
+            sudo mkdir -p /etc/systemd/system/notes-app.service.d
+            echo "[Service]
+Environment=\"GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}\"
+Environment=\"GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}\"" | sudo tee /etc/systemd/system/notes-app.service.d/override.conf
+            
+            # Обновляем и перезапускаем сервис
             echo "Restarting service..."
-            if sudo systemctl is-active --quiet notes-app; then
-              sudo systemctl restart notes-app
-            else
-              echo "Warning: notes-app service is not active"
-              sudo systemctl start notes-app
-            fi
+            sudo cp notes-app.service /etc/systemd/system/
+            sudo systemctl daemon-reload
+            sudo systemctl restart notes-app
             
             # Собираем и обновляем фронтенд
             echo "Building frontend..."
@@ -99,4 +103,49 @@ jobs:
             else
               echo "Error: dist directory not found!"
               exit 1
-            fi 
+            fi
+            
+            # Проверяем работоспособность сервисов
+            echo "Checking services availability..."
+            
+            # Функция для проверки доступности endpoint'а
+            check_endpoint() {
+              local url=$1
+              local max_attempts=$2
+              local attempt=1
+              
+              while [ $attempt -le $max_attempts ]; do
+                echo "Checking $url (attempt $attempt/$max_attempts)..."
+                if curl -s -k -f "$url" > /dev/null; then
+                  echo "$url is available!"
+                  return 0
+                fi
+                echo "Service not ready yet, waiting..."
+                sleep 5
+                attempt=$((attempt + 1))
+              done
+              
+              echo "Error: $url is not available after $max_attempts attempts"
+              return 1
+            }
+            
+            # Проверяем бэкенд (API endpoint)
+            if ! check_endpoint "https://notes.narkis.ru/api/auth/check" 6; then
+              echo "Backend health check failed!"
+              exit 1
+            fi
+            
+            # Проверяем фронтенд (главная страница)
+            if ! check_endpoint "https://notes.narkis.ru/" 6; then
+              echo "Frontend health check failed!"
+              exit 1
+            fi
+            
+            # Проверяем статус сервиса systemd
+            if ! sudo systemctl is-active --quiet notes-app; then
+              echo "Error: notes-app service is not running!"
+              sudo systemctl status notes-app
+              exit 1
+            fi
+            
+            echo "All services are up and running!" 
