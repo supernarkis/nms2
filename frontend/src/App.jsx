@@ -13,42 +13,11 @@ function App() {
   const [strictSearch, setStrictSearch] = useState(false)
   const [selectedNote, setSelectedNote] = useState(null)
   const [saveTimeout, setSaveTimeout] = useState(null)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
   const [saveError, setSaveError] = useState(null)
-  const [touchStart, setTouchStart] = useState(null)
-  const [touchEnd, setTouchEnd] = useState(null)
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(null)
-
-  // Минимальное расстояние для свайпа (в пикселях)
-  const minSwipeDistance = 50
-
-  const onTouchStart = (e) => {
-    setTouchEnd(null)
-    setTouchStart(e.targetTouches[0].clientX)
-  }
-
-  const onTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX)
-  }
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
-    
-    const distance = touchEnd - touchStart
-    const isLeftSwipe = distance < -minSwipeDistance
-    const isRightSwipe = distance > minSwipeDistance
-    
-    // Если свайп справа налево - закрываем сайдбар
-    if (isLeftSwipe && isSidebarOpen) {
-      setIsSidebarOpen(false)
-    }
-    // Если свайп слева направо - открываем сайдбар
-    else if (isRightSwipe && !isSidebarOpen) {
-      setIsSidebarOpen(true)
-    }
-  }
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -122,18 +91,6 @@ function App() {
     }
   }, [title, content])
 
-  // Добавляем обработчик для закрытия сайдбара при клике вне его
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isSidebarOpen && !event.target.closest('.sidebar') && !event.target.closest('.menu-button')) {
-        setIsSidebarOpen(false)
-      }
-    }
-
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [isSidebarOpen])
-
   const fetchNotes = async () => {
     try {
       const response = await axios.get(`${API_URL}/notes`)
@@ -183,14 +140,12 @@ function App() {
     setSelectedNote(note)
     setTitle(note.title)
     setContent(note.content)
-    setIsSidebarOpen(false) // Закрываем сайдбар после выбора заметки на мобильных
   }
 
   const startNewNote = () => {
     setSelectedNote(null)
     setTitle('')
     setContent('')
-    setIsSidebarOpen(false) // Закрываем сайдбар после создания новой заметки на мобильных
   }
 
   const clearSearch = () => {
@@ -213,18 +168,6 @@ function App() {
     }
   };
 
-  // Форматирование даты
-  const formatDate = (dateString) => {
-    const options = { 
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }
-    return new Date(dateString).toLocaleString('ru-RU', options)
-  }
-
   if (isAuthenticated === null) {
     return null // Loading state
   }
@@ -234,20 +177,7 @@ function App() {
   }
 
   return (
-    <div 
-      className="app-container"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
-      <button 
-        className="menu-button" 
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        title="Открыть меню"
-      >
-        ☰
-      </button>
-      
+    <div className="app-container">
       <Auth onLogin={handleLogin} />
       
       {saveError && (
@@ -256,7 +186,7 @@ function App() {
         </div>
       )}
       
-      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+      <aside className="sidebar">
         <div className="sidebar-header">
           {user && (
             <>
@@ -274,6 +204,8 @@ function App() {
                 placeholder="Поиск..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
               />
               {searchQuery && (
                 <button 
@@ -286,16 +218,18 @@ function App() {
               )}
             </div>
           </div>
-          <div className="search-options">
-            <label>
-              <input
-                type="checkbox"
-                checked={strictSearch}
-                onChange={(e) => setStrictSearch(e.target.checked)}
-              />
-              Строгий поиск
-            </label>
-          </div>
+          {(searchQuery || isSearchFocused) && (
+            <div className="search-options">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={strictSearch}
+                  onChange={(e) => setStrictSearch(e.target.checked)}
+                />
+                Строгий поиск
+              </label>
+            </div>
+          )}
         </div>
         
         <div className="notes-list">
@@ -323,11 +257,6 @@ function App() {
                   >
                     <div className="note-item-content">
                       <h3>{note.title || 'noname'}</h3>
-                      <div className="note-meta">
-                        <span className="note-date">
-                          Изменено: {formatDate(note.updated_at)}
-                        </span>
-                      </div>
                     </div>
                     <button
                       className="delete-button"
@@ -345,7 +274,6 @@ function App() {
       </aside>
       
       <main className="main-content">
-
         <form className="note-form" onSubmit={(e) => e.preventDefault()}>
           <input
             type="text"
