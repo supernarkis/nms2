@@ -3,6 +3,7 @@
   --text-color: #333;
   --background-color: #fff;
   --border-color: #e0e0e0;
+  --sidebar-width: 300px;
 }
 
 body {
@@ -259,26 +260,54 @@ body {
 /* Mobile styles */
 @media (max-width: 768px) {
   .app-container {
-    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+    touch-action: pan-y pinch-zoom;
   }
 
   .sidebar {
-    width: 100%;
-    max-width: none;
-    height: 50vh;
+    position: fixed;
+    left: -100%;
+    top: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: var(--sidebar-width);
+    z-index: 1000;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar.open {
+    left: 0;
   }
 
   .main-content {
-    height: 50vh;
+    width: 100%;
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
   }
 
-  .note-form {
-    padding: 15px;
+  .main-content.sidebar-open {
+    margin-left: 85%;
   }
 
-  .note-form input {
-    font-size: 20px;
-    margin-bottom: 15px;
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 999;
+  }
+
+  .sidebar-overlay.visible {
+    display: block;
+  }
+
+  .mobile-menu-button {
+    display: none;
   }
 }
 
@@ -316,4 +345,8 @@ body {
     font-size: 14px;
     white-space: nowrap;
   }
+}
+
+.mobile-menu-button {
+  display: none;
 } 

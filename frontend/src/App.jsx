@@ -17,7 +17,38 @@ function App() {
   const [saveError, setSaveError] = useState(null)
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(null)
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [touchStart, setTouchStart] = useState(null)
+  const [touchEnd, setTouchEnd] = useState(null)
+
+  // Минимальное расстояние для свайпа (в пикселях)
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+    
+    // Если свайп справа налево - закрываем сайдбар
+    if (isLeftSwipe && isSidebarOpen) {
+      setIsSidebarOpen(false)
+    }
+    // Если свайп слева направо - открываем сайдбар
+    else if (isRightSwipe && !isSidebarOpen) {
+      setIsSidebarOpen(true)
+    }
+  }
 
   useEffect(() => {
     checkAuth()
@@ -168,6 +199,12 @@ function App() {
     }
   };
 
+  // Функция для закрытия сайдбара при выборе заметки на мобильных устройствах
+  const handleNoteSelect = (note) => {
+    selectNote(note);
+    setIsSidebarOpen(false);
+  };
+
   if (isAuthenticated === null) {
     return null // Loading state
   }
@@ -177,7 +214,12 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <div 
+      className="app-container"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       <Auth onLogin={handleLogin} />
       
       {saveError && (
@@ -186,12 +228,12 @@ function App() {
         </div>
       )}
       
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           {user && (
             <>
               <span className="username">{user.username}</span>
-              <button onClick={handleLogout} className="logout-button" title="{Х}">×</button>
+              <button onClick={handleLogout} className="logout-button" title="Выйти">×</button>
             </>
           )}
         </div>
@@ -229,7 +271,7 @@ function App() {
         </div>
         
         <div className="notes-list">
-          <div className="note-item" onClick={startNewNote}>
+          <div className="note-item" onClick={() => { startNewNote(); setIsSidebarOpen(false); }}>
             <div className="note-item-content">
               <h3>+New</h3>
             </div>
@@ -239,7 +281,7 @@ function App() {
             <div
               key={note.id}
               className={`note-item ${selectedNote?.id === note.id ? 'active' : ''}`}
-              onClick={() => selectNote(note)}
+              onClick={() => handleNoteSelect(note)}
             >
               <div className="note-item-content">
                 <h3>{note.title || 'Без названия'}</h3>
@@ -255,21 +297,23 @@ function App() {
           ))}
         </div>
       </aside>
+
+      <div className={`sidebar-overlay ${isSidebarOpen ? 'visible' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
       
-      <main className="main-content">
-        <form className="note-form" onSubmit={(e) => e.preventDefault()}>
+      <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`} onClick={() => isSidebarOpen && setIsSidebarOpen(false)}>
+        <div className="note-form">
           <input
             type="text"
+            placeholder="Заголовок"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Заголовок"
           />
           <textarea
+            placeholder="Начните писать..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Начните писать..."
           />
-        </form>
+        </div>
       </main>
     </div>
   )
