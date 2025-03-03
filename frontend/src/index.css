@@ -349,43 +349,4 @@ body {
 
 .mobile-menu-button {
   display: none;
-}
-
-.note-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.note-content textarea {
-  flex: 1;
-  border: none;
-  font-size: 16px;
-  line-height: 1.5;
-  resize: none;
-  padding: 0;
-  background: transparent;
-  position: relative;
-  z-index: 1;
-}
-
-.preview {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  font-size: 16px;
-  line-height: 1.5;
-  pointer-events: none;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  color: transparent;
-}
-
-.preview a {
-  color: var(--primary-color);
-  text-decoration: underline;
-  pointer-events: auto;
 } 
