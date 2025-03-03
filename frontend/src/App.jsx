@@ -205,6 +205,27 @@ function App() {
     setIsSidebarOpen(false);
   };
 
+  // Функция для преобразования текста со ссылками в HTML
+  const linkifyText = (text) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split(urlRegex).map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a 
+            key={i} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   if (isAuthenticated === null) {
     return null // Loading state
   }
@@ -291,7 +312,7 @@ function App() {
                 onClick={(e) => deleteNote(note.id, e)}
                 title="Удалить"
               >
-                ×
+                🗑️
               </button>
             </div>
           ))}
@@ -308,11 +329,16 @@ function App() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <textarea
-            placeholder="Начните писать..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
+          <div className="note-content">
+            <textarea
+              placeholder="Начните писать..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+            />
+            <div className="preview">
+              {linkifyText(content)}
+            </div>
+          </div>
         </div>
       </main>
     </div>
