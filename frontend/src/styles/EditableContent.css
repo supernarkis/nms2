@@ -1,0 +1,44 @@
+.editable-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.editable-textarea {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  border: none;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.editable-textarea:focus {
+  outline: none;
+}
+
+.editable-display {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  padding: 10px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.editable-display a {
+  pointer-events: auto;
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.editable-display a:hover {
+  text-decoration: underline;
+} 

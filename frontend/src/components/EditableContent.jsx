@@ -2,76 +2,68 @@ import React, { useEffect, useRef } from 'react';
 import '../styles/EditableContent.css';
 
 const EditableContent = ({ content, onChange }) => {
-  const editableRef = useRef(null);
+  const textareaRef = useRef(null);
+  const displayRef = useRef(null);
 
   useEffect(() => {
-    if (editableRef.current && content) {
+    if (textareaRef.current && displayRef.current && content) {
+      // Обновляем textarea чистым текстом
+      textareaRef.current.value = content;
+      
+      // Обновляем div с кликабельными ссылками
       const displayContent = processContentForDisplay(content);
-      editableRef.current.innerHTML = displayContent;
+      displayRef.current.innerHTML = displayContent;
     }
   }, [content]);
 
   const processContentForDisplay = (text) => {
     if (!text) return '';
     
-    // Сохраняем код в тройных кавычках
-    const codeBlocks = [];
-    let processedText = text.replace(/```[\s\S]*?```/g, (match) => {
-      codeBlocks.push(match);
-      return `###CODE_BLOCK_${codeBlocks.length - 1}###`;
-    });
-
-    // Оборачиваем ссылки в теги
+    // Находим и оборачиваем ссылки в теги
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    processedText = processedText.replace(urlRegex, (url) => {
+    return text.replace(urlRegex, (url) => {
       return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
-
-    // Возвращаем блоки кода
-    processedText = processedText.replace(/###CODE_BLOCK_(\d+)###/g, (_, index) => {
-      return codeBlocks[index];
-    });
-
-    return processedText;
   };
 
-  const handleInput = () => {
-    if (editableRef.current) {
-      // Получаем текущий HTML
-      let currentHtml = editableRef.current.innerHTML;
-      
-      // Удаляем все теги, кроме кода в тройных кавычках
-      const cleanText = currentHtml.replace(/<[^>]*>/g, '');
-      
-      // Сохраняем очищенный текст
-      onChange(cleanText);
+  const handleInput = (e) => {
+    const newText = e.target.value;
+    
+    // Обновляем отображение с кликабельными ссылками
+    if (displayRef.current) {
+      displayRef.current.innerHTML = processContentForDisplay(newText);
     }
-  };
-
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    document.execCommand('insertText', false, text);
+    
+    // Отправляем чистый текст для сохранения
+    onChange(newText);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault();
-      document.execCommand('insertLineBreak');
+      const { selectionStart, selectionEnd, value } = e.target;
+      const newValue = value.substring(0, selectionStart) + '\n' + value.substring(selectionEnd);
+      e.target.value = newValue;
+      e.target.selectionStart = e.target.selectionEnd = selectionStart + 1;
+      handleInput(e);
     }
   };
 
   return (
-    <div
-      ref={editableRef}
-      className="editable-content"
-      contentEditable
-      suppressContentEditableWarning={true}
-      onInput={handleInput}
-      onPaste={handlePaste}
-      onKeyDown={handleKeyDown}
-      spellCheck={false}
-    />
+    <div className="editable-container">
+      <textarea
+        ref={textareaRef}
+        className="editable-textarea"
+        value={content}
+        onChange={handleInput}
+        onKeyDown={handleKeyDown}
+        spellCheck={false}
+      />
+      <div
+        ref={displayRef}
+        className="editable-display"
+      />
+    </div>
   );
 };
 
