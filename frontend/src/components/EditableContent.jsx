@@ -1,40 +1,33 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import '../styles/EditableContent.css';
 
 const EditableContent = ({ content, onChange }) => {
   const editableRef = useRef(null);
-  const [lastProcessedContent, setLastProcessedContent] = useState('');
 
   useEffect(() => {
-    if (editableRef.current && content !== lastProcessedContent) {
-      editableRef.current.innerHTML = processContentForDisplay(content);
-      setLastProcessedContent(content);
+    if (editableRef.current && content) {
+      const displayContent = processContentForDisplay(content);
+      editableRef.current.innerHTML = displayContent;
     }
   }, [content]);
 
-  // Обработка контента для отображения
   const processContentForDisplay = (text) => {
     if (!text) return '';
     
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, (url) => {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-  };
-
-  // Обработка контента для сохранения
-  const processContentForSave = (text) => {
-    // Находим все блоки кода в тройных апострофах
+    // Сохраняем код в тройных кавычках
     const codeBlocks = [];
     let processedText = text.replace(/```[\s\S]*?```/g, (match) => {
       codeBlocks.push(match);
       return `###CODE_BLOCK_${codeBlocks.length - 1}###`;
     });
 
-    // Удаляем все HTML теги из текста вне блоков кода
-    processedText = processedText.replace(/<[^>]*>/g, '');
+    // Оборачиваем ссылки в теги
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    processedText = processedText.replace(urlRegex, (url) => {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
 
-    // Возвращаем блоки кода обратно
+    // Возвращаем блоки кода
     processedText = processedText.replace(/###CODE_BLOCK_(\d+)###/g, (_, index) => {
       return codeBlocks[index];
     });
@@ -44,11 +37,14 @@ const EditableContent = ({ content, onChange }) => {
 
   const handleInput = () => {
     if (editableRef.current) {
-      const currentText = editableRef.current.innerText;
-      if (currentText !== lastProcessedContent) {
-        setLastProcessedContent(currentText);
-        onChange(currentText);
-      }
+      // Получаем текущий HTML
+      let currentHtml = editableRef.current.innerHTML;
+      
+      // Удаляем все теги, кроме кода в тройных кавычках
+      const cleanText = currentHtml.replace(/<[^>]*>/g, '');
+      
+      // Сохраняем очищенный текст
+      onChange(cleanText);
     }
   };
 
