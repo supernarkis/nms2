@@ -1,37 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import '../styles/EditableContent.css';
 
 const EditableContent = ({ content, onChange }) => {
   const editableRef = useRef(null);
+  const [lastProcessedContent, setLastProcessedContent] = useState('');
 
   useEffect(() => {
-    if (editableRef.current && content) {
-      // Отображаем контент с кликабельными ссылками
+    if (editableRef.current && content !== lastProcessedContent) {
       editableRef.current.innerHTML = processContentForDisplay(content);
+      setLastProcessedContent(content);
     }
   }, [content]);
 
   // Обработка контента для отображения
   const processContentForDisplay = (text) => {
-    // Находим все блоки кода в тройных апострофах
-    const codeBlocks = [];
-    let processedText = text.replace(/```[\s\S]*?```/g, (match) => {
-      codeBlocks.push(match);
-      return `###CODE_BLOCK_${codeBlocks.length - 1}###`;
-    });
-
-    // Находим и оборачиваем ссылки в теги
+    if (!text) return '';
+    
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    processedText = processedText.replace(urlRegex, (url) => {
+    return text.replace(urlRegex, (url) => {
       return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
-
-    // Возвращаем блоки кода обратно
-    processedText = processedText.replace(/###CODE_BLOCK_(\d+)###/g, (_, index) => {
-      return codeBlocks[index];
-    });
-
-    return processedText;
   };
 
   // Обработка контента для сохранения
@@ -56,9 +44,11 @@ const EditableContent = ({ content, onChange }) => {
 
   const handleInput = () => {
     if (editableRef.current) {
-      // При изменении сохраняем только чистый текст
-      const cleanText = processContentForSave(editableRef.current.innerHTML);
-      onChange(cleanText);
+      const currentText = editableRef.current.innerText;
+      if (currentText !== lastProcessedContent) {
+        setLastProcessedContent(currentText);
+        onChange(currentText);
+      }
     }
   };
 
