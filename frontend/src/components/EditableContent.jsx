@@ -8,6 +8,34 @@ const EditableContent = ({ content, onChange }) => {
   const editableRef = useRef(null);
   const editorRef = useRef(null);
 
+  // Обработчик клика по ссылке
+  const handleLinkClick = (e) => {
+    const target = e.target;
+    if (target.tagName === 'A') {
+      e.preventDefault();
+      window.open(target.href, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // Обработчик горячих клавиш
+  const handleKeyDown = (e) => {
+    if (e.altKey && e.key === 'Enter') {
+      e.preventDefault();
+      const selection = window.getSelection();
+      const range = selection.getRangeAt(0);
+      const node = range.commonAncestorContainer;
+      
+      // Ищем ближайшую ссылку
+      const link = node.nodeType === 1 ? 
+        (node.tagName === 'A' ? node : node.querySelector('a')) : 
+        node.parentElement.closest('a');
+
+      if (link) {
+        window.open(link.href, '_blank', 'noopener,noreferrer');
+      }
+    }
+  };
+
   useEffect(() => {
     if (editableRef.current) {
       // Инициализируем редактор
@@ -31,6 +59,9 @@ const EditableContent = ({ content, onChange }) => {
 
       // Подписываемся на изменения
       editableRef.current.addEventListener('input', handleInput);
+      // Добавляем обработчики для ссылок
+      editableRef.current.addEventListener('click', handleLinkClick);
+      editableRef.current.addEventListener('keydown', handleKeyDown);
 
       // Устанавливаем начальный контент
       if (content) {
@@ -44,6 +75,8 @@ const EditableContent = ({ content, onChange }) => {
       }
       if (editableRef.current) {
         editableRef.current.removeEventListener('input', handleInput);
+        editableRef.current.removeEventListener('click', handleLinkClick);
+        editableRef.current.removeEventListener('keydown', handleKeyDown);
       }
     };
   }, []);
