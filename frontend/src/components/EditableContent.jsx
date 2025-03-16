@@ -53,6 +53,17 @@ const EditableContent = ({ content, onChange }) => {
     }
   };
 
+  // Обработчик двойного клика
+  const handleDoubleClick = (e) => {
+    const target = e.target.closest('a') || e.target;
+    if (target.tagName === 'A') {
+      e.preventDefault();
+      e.stopPropagation();
+      openLink(target.href);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (editableRef.current) {
       // Инициализируем редактор
@@ -72,28 +83,24 @@ const EditableContent = ({ content, onChange }) => {
         },
         autoLink: true,
         imageDragging: false,
-        disableClickEditing: false
+        disableDoubleReturn: true, // Отключаем двойной enter
+        disableExtraSpaces: false,
+        disableReturn: false
       });
 
       // Подписываемся на изменения
       editableRef.current.addEventListener('input', handleInput);
       // Добавляем обработчик для горячих клавиш
       editableRef.current.addEventListener('keydown', handleKeyDown);
+      // Добавляем обработчик двойного клика
+      editableRef.current.addEventListener('dblclick', handleDoubleClick, true);
 
-      // Обработка кликов по ссылкам
+      // Предотвращаем стандартное поведение ссылок
       editableRef.current.addEventListener('click', (e) => {
-        if (e.target.tagName === 'A') {
+        if (e.target.tagName === 'A' || e.target.closest('a')) {
           e.preventDefault();
         }
-      });
-
-      // Обработка двойного клика
-      editableRef.current.addEventListener('dblclick', (e) => {
-        if (e.target.tagName === 'A') {
-          e.preventDefault();
-          openLink(e.target.href);
-        }
-      });
+      }, true);
 
       // Устанавливаем начальный контент
       if (content) {
@@ -108,6 +115,7 @@ const EditableContent = ({ content, onChange }) => {
       if (editableRef.current) {
         editableRef.current.removeEventListener('input', handleInput);
         editableRef.current.removeEventListener('keydown', handleKeyDown);
+        editableRef.current.removeEventListener('dblclick', handleDoubleClick, true);
       }
     };
   }, []);
