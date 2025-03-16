@@ -197,11 +197,7 @@
     .main-content {
       width: 100%;
       margin-left: 0;
-      transition: margin-left 0.3s ease;
-    }
-  
-    .main-content.sidebar-open {
-      margin-left: 85%;
+      position: relative;
     }
   
     .sidebar-overlay {

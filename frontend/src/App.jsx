@@ -302,7 +302,7 @@ function App() {
 
       <div className={`sidebar-overlay ${isSidebarOpen ? 'visible' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
       
-      <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`} onClick={() => isSidebarOpen && setIsSidebarOpen(false)}>
+      <main className="main-content" onClick={() => isSidebarOpen && setIsSidebarOpen(false)}>
         <div className="note-form">
           <input
             type="text"

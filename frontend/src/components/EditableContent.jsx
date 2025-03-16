@@ -8,12 +8,29 @@ const EditableContent = ({ content, onChange }) => {
   const editableRef = useRef(null);
   const editorRef = useRef(null);
 
-  // Обработчик клика по ссылке
-  const handleLinkClick = (e) => {
-    const target = e.target;
-    if (target.tagName === 'A') {
-      e.preventDefault();
-      window.open(target.href, '_blank', 'noopener,noreferrer');
+  // Функция для открытия ссылки с предотвращением редиректа
+  const openLink = (url) => {
+    // Пытаемся предотвратить редирект для imgur
+    if (url.includes('i.imgur.com')) {
+      const win = window.open('about:blank', '_blank', 'noopener,noreferrer');
+      if (win) {
+        win.document.write(`
+          <html>
+            <head>
+              <title>Image</title>
+              <style>
+                body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #2d2d2d; }
+                img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+              </style>
+            </head>
+            <body>
+              <img src="${url}" alt="Image" />
+            </body>
+          </html>
+        `);
+      }
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -31,7 +48,7 @@ const EditableContent = ({ content, onChange }) => {
         node.parentElement.closest('a');
 
       if (link) {
-        window.open(link.href, '_blank', 'noopener,noreferrer');
+        openLink(link.href);
       }
     }
   };
@@ -54,14 +71,29 @@ const EditableContent = ({ content, onChange }) => {
           placeholderText: null
         },
         autoLink: true,
-        imageDragging: false
+        imageDragging: false,
+        disableClickEditing: false
       });
 
       // Подписываемся на изменения
       editableRef.current.addEventListener('input', handleInput);
-      // Добавляем обработчики для ссылок
-      editableRef.current.addEventListener('click', handleLinkClick);
+      // Добавляем обработчик для горячих клавиш
       editableRef.current.addEventListener('keydown', handleKeyDown);
+
+      // Обработка кликов по ссылкам
+      editableRef.current.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+          e.preventDefault();
+        }
+      });
+
+      // Обработка двойного клика
+      editableRef.current.addEventListener('dblclick', (e) => {
+        if (e.target.tagName === 'A') {
+          e.preventDefault();
+          openLink(e.target.href);
+        }
+      });
 
       // Устанавливаем начальный контент
       if (content) {
@@ -75,7 +107,6 @@ const EditableContent = ({ content, onChange }) => {
       }
       if (editableRef.current) {
         editableRef.current.removeEventListener('input', handleInput);
-        editableRef.current.removeEventListener('click', handleLinkClick);
         editableRef.current.removeEventListener('keydown', handleKeyDown);
       }
     };
