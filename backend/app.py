@@ -152,18 +152,19 @@ def refresh_auth():
     if not payload or payload.get('type') != 'refresh':
         return jsonify({'message': 'Invalid refresh token'}), 401
 
-    # Создаем новый access token
+    # Генерим новый access token 
     access_token = create_token(payload['user_id'], 'access')
     
     response = make_response(jsonify({'message': 'Token refreshed'}))
-    response.set_cookie(
-        'auth_token',
-        access_token,
-        httponly=True,
-        secure=True,
-        samesite='Strict',
-        max_age=30*24*60*60  # 30 дней
-    )
+    
+    cookie_options = {
+        'httponly': True,
+        'secure': True,
+        'samesite': 'Strict',
+        'max_age': 30*24*60*60  # 30 дней
+    }
+    
+    response.set_cookie('auth_token', access_token, **cookie_options)
     
     return response
 
@@ -174,5 +175,29 @@ def logout():
     response.delete_cookie('refresh_token')
     return response
 
+@app.route('/api/auth/check', methods=['GET'])
+def check_auth():
+    auth_token = request.cookies.get('auth_token')
+    if not auth_token:
+        return jsonify({'authenticated': False}), 200
+        
+    try:
+        payload = decode_token(auth_token)
+        if payload and payload.get('type') == 'access':
+            return jsonify({'authenticated': True}), 200
+    except:
+        pass
+        
+    return jsonify({'authenticated': False}), 200
+
+@app.route('/api/auth/user', methods=['GET'])
+@token_required
+def get_user(user_id):
+    # В будущем здесь можно добавить получение данных пользователя из базы данных
+    return jsonify({
+        'id': user_id,
+        'username': 'User ' + user_id[:6]  # Временное решение
+    })
+
 if __name__ == '__main__':
-    app.run(debug=False) 
+    app.run(debug=False)

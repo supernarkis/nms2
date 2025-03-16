@@ -5,6 +5,9 @@ import WelcomePage from './components/WelcomePage'
 import EditableContent from './components/EditableContent'
 import './App.css'
 
+// Настраиваем axios для отправки куки
+axios.defaults.withCredentials = true
+
 const API_URL = '/api'
 
 function App() {
@@ -62,6 +65,29 @@ function App() {
         credentials: 'include'
       })
       const data = await response.json()
+      
+      if (!data.authenticated) {
+        // Пробуем обновить токен
+        try {
+          await fetch('/auth/refresh', {
+            method: 'POST',
+            credentials: 'include'
+          })
+          // Повторяем проверку после обновления
+          const retryResponse = await fetch('/api/auth/check', {
+            credentials: 'include'
+          })
+          const retryData = await retryResponse.json()
+          setIsAuthenticated(retryData.authenticated)
+          if (retryData.authenticated) {
+            fetchNotes()
+          }
+          return
+        } catch (refreshError) {
+          console.error('Error refreshing token:', refreshError)
+        }
+      }
+      
       setIsAuthenticated(data.authenticated)
       if (data.authenticated) {
         fetchNotes()
@@ -124,6 +150,23 @@ function App() {
     }
   }, [title, content])
 
+  const handleApiError = async (error) => {
+    if (error.response && error.response.status === 401) {
+      try {
+        await fetch('/auth/refresh', {
+          method: 'POST',
+          credentials: 'include'
+        })
+        return true // Токен обновлен
+      } catch (refreshError) {
+        console.error('Error refreshing token:', refreshError)
+        setIsAuthenticated(false)
+        return false
+      }
+    }
+    return false
+  }
+
   const fetchNotes = async () => {
     try {
       const response = await axios.get(`${API_URL}/notes`)
@@ -131,6 +174,17 @@ function App() {
       setConnectionError(false)
     } catch (error) {
       console.error('Ошибка при загрузке заметок:', error)
+      if (await handleApiError(error)) {
+        // Повторяем запрос после обновления токена
+        try {
+          const retryResponse = await axios.get(`${API_URL}/notes`)
+          setNotes(retryResponse.data)
+          setConnectionError(false)
+          return
+        } catch (retryError) {
+          console.error('Ошибка при повторной загрузке заметок:', retryError)
+        }
+      }
       setConnectionError(true)
       setNotes([])
     }
@@ -145,6 +199,19 @@ function App() {
       setConnectionError(false)
     } catch (error) {
       console.error('Ошибка при поиске заметок:', error)
+      if (await handleApiError(error)) {
+        // Повторяем запрос после обновления токена
+        try {
+          const retryResponse = await axios.get(
+            `${API_URL}/notes/search?q=${searchQuery}&strict=${strictSearch}`
+          )
+          setNotes(retryResponse.data)
+          setConnectionError(false)
+          return
+        } catch (retryError) {
+          console.error('Ошибка при повторном поиске заметок:', retryError)
+        }
+      }
       setConnectionError(true)
       setNotes([])
     }
