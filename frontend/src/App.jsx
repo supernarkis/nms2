@@ -62,7 +62,7 @@ function App() {
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/check', {
-        credentials: 'include'
+        credentials: 'same-origin'
       })
       const data = await response.json()
       
@@ -71,11 +71,11 @@ function App() {
         try {
           await fetch('/auth/refresh', {
             method: 'POST',
-            credentials: 'include'
+            credentials: 'same-origin'
           })
           // Повторяем проверку после обновления
           const retryResponse = await fetch('/api/auth/check', {
-            credentials: 'include'
+            credentials: 'same-origin'
           })
           const retryData = await retryResponse.json()
           setIsAuthenticated(retryData.authenticated)
@@ -155,7 +155,7 @@ function App() {
       try {
         await fetch('/auth/refresh', {
           method: 'POST',
-          credentials: 'include'
+          credentials: 'same-origin'
         })
         return true // Токен обновлен
       } catch (refreshError) {
@@ -259,8 +259,9 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        credentials: 'include'
+      await fetch('/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
       });
       window.location.reload();
     } catch (error) {

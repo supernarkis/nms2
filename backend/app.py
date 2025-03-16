@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, make_response
-from flask_cors import CORS
+# Убираем CORS, так как он не нужен
+# from flask_cors import CORS
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
@@ -64,7 +65,8 @@ if not os.getenv('JWT_SECRET'):
     raise ValueError("JWT_SECRET не настроен")
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+# Убираем CORS настройки
+# CORS(app, supports_credentials=True, ...)
 
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 JWT_SECRET = os.getenv('JWT_SECRET')
