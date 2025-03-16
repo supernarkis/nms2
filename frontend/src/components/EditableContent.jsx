@@ -66,9 +66,10 @@ const EditableContent = ({ content, onChange, className }) => {
   // Обработчик ввода
   const handleInput = useCallback((e) => {
     if (!isComposing.current) {
+      processLinks(editableRef.current);
       handleChange();
     }
-  }, [handleChange]);
+  }, [handleChange, processLinks]);
 
   // Обработчик вставки (только plain text)
   const handlePaste = useCallback((e) => {
