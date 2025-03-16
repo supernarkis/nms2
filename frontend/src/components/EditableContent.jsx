@@ -10,28 +10,7 @@ const EditableContent = ({ content, onChange }) => {
 
   // Функция для открытия ссылки с предотвращением редиректа
   const openLink = (url) => {
-    // Пытаемся предотвратить редирект для imgur
-    if (url.includes('i.imgur.com')) {
-      const win = window.open('about:blank', '_blank', 'noopener,noreferrer');
-      if (win) {
-        win.document.write(`
-          <html>
-            <head>
-              <title>Image</title>
-              <style>
-                body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #2d2d2d; }
-                img { max-width: 100%; max-height: 100vh; object-fit: contain; }
-              </style>
-            </head>
-            <body>
-              <img src="${url}" alt="Image" />
-            </body>
-          </html>
-        `);
-      }
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Обработчик горячих клавиш
