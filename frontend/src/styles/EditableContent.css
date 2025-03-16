@@ -46,17 +46,19 @@
 .editable-content {
   width: 100%;
   min-height: 100%;
-  padding: 10px;
+  padding: 1rem;
   outline: none;
+  line-height: 1.6;
 }
 
 .editable-content a {
-  color: #0366d6;
+  color: rgba(0, 102, 204, 0.95);
   text-decoration: none;
+  border-bottom: 1px solid rgba(0, 102, 204, 0.3);
 }
 
 .editable-content a:hover {
-  text-decoration: underline;
+  border-bottom-color: rgba(0, 102, 204, 0.6);
 }
 
 /* Убираем лишние стили medium-editor */
