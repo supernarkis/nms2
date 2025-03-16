@@ -60,16 +60,16 @@ const EditableContent = ({ content, onChange, className }) => {
   const handleChange = debounce(() => {
     if (editableRef.current && onChange) {
       onChange(editableRef.current.innerHTML);
+      processLinks(editableRef.current);
     }
-  }, 300);
+  }, 3000);
 
   // Обработчик ввода
   const handleInput = useCallback((e) => {
     if (!isComposing.current) {
-      processLinks(editableRef.current);
       handleChange();
     }
-  }, [handleChange, processLinks]);
+  }, [handleChange]);
 
   // Обработчик вставки (только plain text)
   const handlePaste = useCallback((e) => {
