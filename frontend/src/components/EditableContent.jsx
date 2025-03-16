@@ -1,63 +1,63 @@
 import React, { useEffect, useRef } from 'react';
+import MediumEditor from 'medium-editor';
+import 'medium-editor/dist/css/medium-editor.css';
+import 'medium-editor/dist/css/themes/default.css';
 import '../styles/EditableContent.css';
 
 const EditableContent = ({ content, onChange }) => {
   const editableRef = useRef(null);
+  const editorRef = useRef(null);
 
   useEffect(() => {
-    if (editableRef.current && content) {
-      // При первой загрузке или обновлении контента извне
-      editableRef.current.innerHTML = processContentForDisplay(content);
+    if (editableRef.current) {
+      // Инициализируем редактор
+      editorRef.current = new MediumEditor(editableRef.current, {
+        toolbar: false,
+        placeholder: false,
+        paste: {
+          forcePlainText: true,
+          cleanPastedHTML: true
+        },
+        anchor: {
+          targetCheckbox: false,
+          customClassOption: null,
+          customClassOptionText: null,
+          linkValidation: true,
+          placeholderText: null
+        },
+        autoLink: true,
+        imageDragging: false
+      });
+
+      // Подписываемся на изменения
+      editableRef.current.addEventListener('input', handleInput);
+
+      // Устанавливаем начальный контент
+      if (content) {
+        editableRef.current.innerHTML = content;
+      }
+    }
+
+    return () => {
+      if (editorRef.current) {
+        editorRef.current.destroy();
+      }
+      if (editableRef.current) {
+        editableRef.current.removeEventListener('input', handleInput);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (editableRef.current && content !== editableRef.current.innerHTML) {
+      editableRef.current.innerHTML = content || '';
     }
   }, [content]);
 
-  const processContentForDisplay = (text) => {
-    if (!text) return '';
-    
-    // Находим и оборачиваем ссылки в теги
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, (url) => {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-  };
-
   const handleInput = () => {
     if (editableRef.current) {
-      // Получаем текущий текст, удаляя все HTML теги
-      const plainText = editableRef.current.innerText;
-      
-      // Сохраняем чистый текст
-      onChange(plainText);
-      
-      // Обновляем отображение с кликабельными ссылками
-      const displayContent = processContentForDisplay(plainText);
-      if (displayContent !== editableRef.current.innerHTML) {
-        const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
-        const startOffset = range.startOffset;
-        
-        editableRef.current.innerHTML = displayContent;
-        
-        // Восстанавливаем позицию курсора
-        const newRange = document.createRange();
-        newRange.setStart(editableRef.current.firstChild || editableRef.current, Math.min(startOffset, (editableRef.current.firstChild || editableRef.current).length));
-        newRange.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(newRange);
-      }
-    }
-  };
-
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    document.execCommand('insertText', false, text);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      document.execCommand('insertLineBreak');
+      const text = editableRef.current.innerHTML;
+      onChange(text);
     }
   };
 
@@ -65,11 +65,6 @@ const EditableContent = ({ content, onChange }) => {
     <div
       ref={editableRef}
       className="editable-content"
-      contentEditable
-      suppressContentEditableWarning={true}
-      onInput={handleInput}
-      onPaste={handlePaste}
-      onKeyDown={handleKeyDown}
       spellCheck={false}
     />
   );
