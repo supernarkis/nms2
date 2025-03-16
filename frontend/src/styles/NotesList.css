@@ -4,7 +4,7 @@
 }
 
 .note-item {
-  padding: 2px 8px;
+  padding: 2px 2px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
