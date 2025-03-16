@@ -2,17 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import '../styles/EditableContent.css';
 
 const EditableContent = ({ content, onChange }) => {
-  const textareaRef = useRef(null);
-  const displayRef = useRef(null);
+  const editableRef = useRef(null);
 
   useEffect(() => {
-    if (textareaRef.current && displayRef.current && content) {
-      // Обновляем textarea чистым текстом
-      textareaRef.current.value = content;
-      
-      // Обновляем div с кликабельными ссылками
-      const displayContent = processContentForDisplay(content);
-      displayRef.current.innerHTML = displayContent;
+    if (editableRef.current && content) {
+      // При первой загрузке или обновлении контента извне
+      editableRef.current.innerHTML = processContentForDisplay(content);
     }
   }, [content]);
 
@@ -26,44 +21,57 @@ const EditableContent = ({ content, onChange }) => {
     });
   };
 
-  const handleInput = (e) => {
-    const newText = e.target.value;
-    
-    // Обновляем отображение с кликабельными ссылками
-    if (displayRef.current) {
-      displayRef.current.innerHTML = processContentForDisplay(newText);
+  const handleInput = () => {
+    if (editableRef.current) {
+      // Получаем текущий текст, удаляя все HTML теги
+      const plainText = editableRef.current.innerText;
+      
+      // Сохраняем чистый текст
+      onChange(plainText);
+      
+      // Обновляем отображение с кликабельными ссылками
+      const displayContent = processContentForDisplay(plainText);
+      if (displayContent !== editableRef.current.innerHTML) {
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const startOffset = range.startOffset;
+        
+        editableRef.current.innerHTML = displayContent;
+        
+        // Восстанавливаем позицию курсора
+        const newRange = document.createRange();
+        newRange.setStart(editableRef.current.firstChild || editableRef.current, Math.min(startOffset, (editableRef.current.firstChild || editableRef.current).length));
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
     }
-    
-    // Отправляем чистый текст для сохранения
-    onChange(newText);
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && e.shiftKey) {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      const { selectionStart, selectionEnd, value } = e.target;
-      const newValue = value.substring(0, selectionStart) + '\n' + value.substring(selectionEnd);
-      e.target.value = newValue;
-      e.target.selectionStart = e.target.selectionEnd = selectionStart + 1;
-      handleInput(e);
+      document.execCommand('insertLineBreak');
     }
   };
 
   return (
-    <div className="editable-container">
-      <textarea
-        ref={textareaRef}
-        className="editable-textarea"
-        value={content}
-        onChange={handleInput}
-        onKeyDown={handleKeyDown}
-        spellCheck={false}
-      />
-      <div
-        ref={displayRef}
-        className="editable-display"
-      />
-    </div>
+    <div
+      ref={editableRef}
+      className="editable-content"
+      contentEditable
+      suppressContentEditableWarning={true}
+      onInput={handleInput}
+      onPaste={handlePaste}
+      onKeyDown={handleKeyDown}
+      spellCheck={false}
+    />
   );
 };
 

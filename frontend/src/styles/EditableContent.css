@@ -41,4 +41,22 @@
 
 .editable-display a:hover {
   text-decoration: underline;
+}
+
+.editable-content {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  outline: none;
+}
+
+.editable-content a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.editable-content a:hover {
+  text-decoration: underline;
 } 
