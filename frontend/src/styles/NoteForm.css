@@ -1,0 +1,12 @@
+.note-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+/* Убираем стандартные стили для contentEditable */
+[contenteditable] {
+  -webkit-user-modify: read-write-plaintext-only;
+  user-modify: read-write-plaintext-only;
+} 
