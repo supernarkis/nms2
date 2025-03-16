@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Auth from './components/Auth'
 import WelcomePage from './components/WelcomePage'
+import EditableContent from './components/EditableContent'
+import './App.css'
 
 const API_URL = '/api'
 
@@ -308,10 +310,9 @@ function App() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <textarea
-            placeholder="Начните писать..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
+          <EditableContent
+            content={content}
+            onChange={(newContent) => setContent(newContent)}
           />
         </div>
       </main>
