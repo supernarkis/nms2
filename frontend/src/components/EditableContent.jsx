@@ -62,7 +62,7 @@ const EditableContent = ({ content, onChange, className }) => {
       onChange(editableRef.current.innerHTML);
       processLinks(editableRef.current);
     }
-  }, 3000);
+  }, 450);
 
   // Обработчик ввода
   const handleInput = useCallback((e) => {
