@@ -122,16 +122,23 @@ function App() {
     if (title.trim() || content.trim()) {
       const timeout = setTimeout(async () => {
         try {
+          let updatedNote;
           if (selectedNote) {
-            await axios.put(`${API_URL}/notes/${selectedNote.id}`, { title, content })
+            const response = await axios.put(`${API_URL}/notes/${selectedNote.id}`, { title, content })
+            updatedNote = response.data.note
+            // Обновляем заметку в списке без полной перезагрузки
+            setNotes(prevNotes => {
+              const newNotes = prevNotes.map(note => 
+                note.id === selectedNote.id ? { ...note, title, content } : note
+              )
+              return sortNotes(newNotes)
+            })
           } else {
             const response = await axios.post(`${API_URL}/notes`, { title, content })
-            setSelectedNote({ id: response.data.id })
-          }
-          if (searchQuery) {
-            searchNotes()
-          } else {
-            fetchNotes()
+            updatedNote = response.data.note
+            setSelectedNote(updatedNote)
+            // Добавляем новую заметку в список без полной перезагрузки
+            setNotes(prevNotes => sortNotes([updatedNote, ...prevNotes]))
           }
           setSaveError(null)
         } catch (error) {
@@ -167,18 +174,24 @@ function App() {
     return false
   }
 
+  const sortNotes = (notes) => {
+    return [...notes].sort((a, b) => {
+      // Сортировка по дате создания (убывание)
+      return new Date(b.created_at) - new Date(a.created_at)
+    })
+  }
+
   const fetchNotes = async () => {
     try {
       const response = await axios.get(`${API_URL}/notes`)
-      setNotes(response.data)
+      setNotes(sortNotes(response.data))  // Применяем сортировку
       setConnectionError(false)
     } catch (error) {
       console.error('Ошибка при загрузке заметок:', error)
       if (await handleApiError(error)) {
-        // Повторяем запрос после обновления токена
         try {
           const retryResponse = await axios.get(`${API_URL}/notes`)
-          setNotes(retryResponse.data)
+          setNotes(sortNotes(retryResponse.data))  // Применяем сортировку
           setConnectionError(false)
           return
         } catch (retryError) {
@@ -195,17 +208,16 @@ function App() {
       const response = await axios.get(
         `${API_URL}/notes/search?q=${searchQuery}&strict=${strictSearch}`
       )
-      setNotes(response.data)
+      setNotes(sortNotes(response.data))  // Применяем сортировку
       setConnectionError(false)
     } catch (error) {
       console.error('Ошибка при поиске заметок:', error)
       if (await handleApiError(error)) {
-        // Повторяем запрос после обновления токена
         try {
           const retryResponse = await axios.get(
             `${API_URL}/notes/search?q=${searchQuery}&strict=${strictSearch}`
           )
-          setNotes(retryResponse.data)
+          setNotes(sortNotes(retryResponse.data))  // Применяем сортировку
           setConnectionError(false)
           return
         } catch (retryError) {
