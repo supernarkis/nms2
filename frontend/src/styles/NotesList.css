@@ -1,15 +1,25 @@
 .notes-list {
-  padding: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 100vh;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+}
+
+.notes-list::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }
 
 .note-item {
-  padding: 2px 2px;
+  padding: 8px;
+  border-bottom: 1px solid #ccc;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: none;
 }
 
 .note-item:hover {
@@ -17,7 +27,7 @@
 }
 
 .note-item.active {
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: #f0f0f0;
 }
 
 .note-item .title {
@@ -40,4 +50,15 @@
 
 .note-item:hover .delete-button {
   opacity: 1;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: #ff4444;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  color: #ff0000;
 } 
